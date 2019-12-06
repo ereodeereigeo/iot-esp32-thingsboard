@@ -7,7 +7,7 @@
 #include <Wire.h>
 #include "RTClib.h"
 #include <string.h>
-// Libraries for SD card
+// Librerías para la tarjeta SD
 #include "FS.h"
 #include "SD.h"
 #include <SPI.h>
@@ -17,16 +17,18 @@ const int sensorPin = 33;   // seleccionar la entrada para el sensor
 int sensorValue;         // variable que almacena el valor raw (0 a 1023)
 float value;   
 // GPIO where the DS18B20 is connected to
+// Pin en donde el sensor de temperatura DS18B20 está conectado
 const int oneWireBus = 2;
 // Setup a oneWire instance to communicate with any OneWire devices
+// Configurar una instancia de oneWire para comunicarlo con cualquier otro dispositivo OneWire
 OneWire oneWire(oneWireBus);
 // Pass our oneWire reference to Dallas Temperature sensor 
+// Pasar la referencia de oneWire al sensor de temperatura Dallas Temperature
 DallasTemperature sensors(&oneWire);
 
 // Declaramos un RTC DS3231
 RTC_DS3231 rtc;
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-//declarar todas las variables con minuscula!!
 //Asignar datos de la tarjeta sim
   //Asignar dirección compañía de celular
   const char apn[] = "bam.entelpcs.cl";
@@ -62,18 +64,26 @@ const char id_serie[] = "A001";
 #define THINGSBOARD_PORT    80
 
 // Initialize GSM modem
+// Inicializar modem GSM
 TinyGsm modem(SerialAT);
 
 // Initialize GSM client
+// Inicializar cliente GSM
 TinyGsmClient client(modem);
 
 // Initialize ThingsBoard instance
+// Inicializar instancia de Thingsboard
 ThingsBoard tb(client);
 // Set to true, if modem is connected
+// Colocar en True si el modem está conectado
 bool modemConnected = false;
 
+// Definir variable de string para el mensaje a enviar a thingsboard
 String dataMessage;
 
+// Se define una lookup table para corregir la no linealidad del pin analógico del ESP32
+// Esta lookup table está sacada de un comentario y no corresponde exactamente a todos los ESP sin embargo aproxima mejor el comportamiento
+// Para mejorar esto hay que mapear el rango para cada dispositivo con un osciloscopio y un generador de señal
 int ADC_LUT[4096] = { 0,
 0,66,70,74,78,81,82,83,85,86,87,89,90,91,92,94,
 95,96,97,98,99,100,101,102,103,104,105,106,106,107,108,109,
@@ -332,6 +342,7 @@ int ADC_LUT[4096] = { 0,
 4057,4058,4058,4059,4059,4060,4060,4061,4061,4062,4062,4063,4063,4064,4065,4066,
 4067,4068,4069,4070,4070,4071,4072,4073,4074,4075,4076,4077,4078,4079,4080
 } ;
+
 void setup() {
   // put your setup code here, to run once:
   //inicializar puerto serial ESP32
@@ -356,28 +367,33 @@ void setup() {
 sensors.begin();
 
   //inicializar sensor de voltaje DC
-
+// no se inicializa ya que es un pin analógico que sólo se activa al leer el voltaje en el pin
   //inicializar sensor de corriente
-
+// no se inicializa ya que es un pin analógico que solo se activa al leer el voltaje en el pin
   //inicializar SD
 // Initialize SD card
-  SD.begin();  
-  if(!SD.begin()) {
+// Se inicializa la tarjeta SD
+  SD.begin(); 
+// si SD.begin() entrega un valor 0 entonces significa que falló y se imprime en el puerto serial
+  if(!SD.begin()) {  
     Serial.println("Card Mount Failed");
     //return;
   }
-  uint8_t cardType = SD.cardType();
+  uint8_t cardType = SD.cardType(); //se extrae variable del tipo de tarjeta, si entrega None, significa que no hay una tarjeta SD
   if(cardType == CARD_NONE) {
     Serial.println("No SD card attached");
     //return;
   }
+  // otra vez se chequea si la tarjeta SD está activa
   Serial.println("Initializing SD card...");
   if (!SD.begin()) {
     Serial.println("ERROR - SD card initialization failed!");
     //return;    // init failed
   }
   // If the data.txt file doesn't exist
+  // SI el documento data.txt no existe
   // Create a file on the SD card and write the data labels
+  // crear el documento en la tarjeta SD y escribir el encabezado
   File file = SD.open("/data.txt");
   if(!file) {
     Serial.println("File doens't exist");
@@ -385,20 +401,23 @@ sensors.begin();
     writeFile(SD, "/data.txt", "json_data \r\n");
   }
   else {
-    Serial.println("File already exists");  
+    Serial.println("File already exists"); // si detecta el archivo simplemente lo cierra 
   }
   file.close();
   //inicializar MODEM
-  modem.init();
-  String modemInfo = modem.getModemInfo();
-  SerialMon.print(F("Modem: "));
+  modem.init(); //inicializa el modem
+  String modemInfo = modem.getModemInfo(); //solicita la información del modem
+  //imprime la información del modem (colocar ejemplo de output)
+  SerialMon.print(F("Modem: ")); 
   SerialMon.println(modemInfo);
 }
 
 void loop() {
-  delay(1000);
+  delay(1000); //delay de 1 segundo antes de ejecutar el resto del código, al final del código es un delay de 59 seg para en resultado 
+  //crear un loop que lea los datos cada 1 minuto y los envíe por internet a la plataforma
   // put your main code here, to run repeatedly:
-//Read SIM800 output (if available) and print it in Arduino IDE Serial Monitor
+//código para testear los comandos AT desde la consola serial
+  //Read SIM800 output (if available) and print it in Arduino IDE Serial Monitor
 //  if(SerialAT.available()){
 //    SerialMon.write(SerialAT.read());
 //  }
@@ -406,6 +425,8 @@ void loop() {
 //  if(SerialMon.available()){    
   //  SerialAT.write(SerialMon.read());
   //}
+  
+  //Si el modem está conectado intentar conectarse a la red gsrm
   if (!modemConnected) {
     SerialMon.print(F("Waiting for network..."));
     if (!modem.waitForNetwork()) {
@@ -416,8 +437,10 @@ void loop() {
     SerialMon.println(" OK");
 
     SerialMon.print(F("Connecting to "));
+    // Se conecta al sistema de internet de la sim card
     SerialMon.print(apn);
-    if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
+    //realiza la conección y verifica el tema
+    if (!modem.gprsConnect(apn, gprsUser, gprsPass)) { //debería crear un loop que intente unas 5 veces y continue con el resto del código
         SerialMon.println(" fail");
         delay(10000);
         //return;
@@ -452,7 +475,7 @@ sensors.requestTemperatures();
   Serial.print(temperatureF);
   Serial.println("ºF");
   //leer sensor de corriente
-
+//falta añadir el código aquí!!!!!
   //leer sensor de voltaje DC
    sensorValue = analogRead(sensorPin);          // realizar la lectura
    sensorValue = (int)ADC_LUT[sensorValue];
@@ -474,16 +497,16 @@ sensors.requestTemperatures();
     SerialMon.println(TOKEN);
     if (!tb.connect(THINGSBOARD_SERVER, TOKEN)) {
       SerialMon.println("Failed to connect");
-      return;
+      return; //Se podría intentar un número de intentos antes de salir del void loop()
     }
   }
 
   SerialMon.println("Sending data...");
 
   // Uploads new telemetry to ThingsBoard using MQTT. 
+  // Se envía los datos de telemetría a Thingsboard usando MQTT.
   // See https://thingsboard.io/docs/reference/mqtt-api/#telemetry-upload-api 
-  // for more details
-const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3)+50;
+const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3)+50; //se crea un documento json a enviar
 DynamicJsonDocument doc(capacity);
 String var1 =String(now.unixtime());  //Enviar solo horario UTC, thingsboard lo adaptará al horario del usuario
 String var2 ="000";
