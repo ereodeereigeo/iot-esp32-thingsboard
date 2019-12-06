@@ -364,17 +364,17 @@ sensors.begin();
   SD.begin();  
   if(!SD.begin()) {
     Serial.println("Card Mount Failed");
-    return;
+    //return;
   }
   uint8_t cardType = SD.cardType();
   if(cardType == CARD_NONE) {
     Serial.println("No SD card attached");
-    return;
+    //return;
   }
   Serial.println("Initializing SD card...");
   if (!SD.begin()) {
     Serial.println("ERROR - SD card initialization failed!");
-    return;    // init failed
+    //return;    // init failed
   }
   // If the data.txt file doesn't exist
   // Create a file on the SD card and write the data labels
@@ -410,8 +410,8 @@ void loop() {
     SerialMon.print(F("Waiting for network..."));
     if (!modem.waitForNetwork()) {
         SerialMon.println(" fail");
-        delay(10000);
-        return;
+        delay(1000);
+        //return;
     }
     SerialMon.println(" OK");
 
@@ -420,7 +420,7 @@ void loop() {
     if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
         SerialMon.println(" fail");
         delay(10000);
-        return;
+        //return;
     }
 
     modemConnected = true;
