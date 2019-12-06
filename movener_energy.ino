@@ -348,7 +348,7 @@ void setup() {
   //inicializar RTC
   if (! rtc.begin()) {
  Serial.println("No hay un módulo RTC");
- while (1);
+ //while (1);
  }
  //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
  
