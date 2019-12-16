@@ -1,4 +1,5 @@
 //Incluir librerías a utilizar
+#include <esp_adc_cal.h>
 #define TINY_GSM_MODEM_SIM800 //Se define modelo de modulo sim
 #include <TinyGsmClient.h> //Se incluye libreria TinyGSM para controlar los comandos AT hacia el modulo SIM
 #include "ThingsBoard.h" //Se incluye libreria de thingsboard para conectar y enviar los datos via mqtt
@@ -13,11 +14,13 @@
 #include <SPI.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
-const int sensorPin = 33;   // seleccionar la entrada para el sensor
+
 int inPinI;
 int sampleI;
 float sqV,sumV,sqI,sumI,instP,sumP; 
-float voltageI;
+float voltageI;     
+esp_adc_cal_characteristics_t *adc_chars = new esp_adc_cal_characteristics_t;
+const int sensorPin = 33;   // seleccionar la entrada para el sensor
 int sensorValue;         // variable que almacena el valor raw (0 a 1023)
 float value;   
 // GPIO where the DS18B20 is connected to
@@ -61,10 +64,10 @@ char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursd
 const char id_serie[] = "A001";
 
 //Asignar access token thingsboard
-#define TOKEN "VZ7InVhdzmGUHf2b5IPC"
+#define TOKEN "fjmLOpl4aQGDLhBg8wTP"
 
 //Asignar IP thingsboard
-#define THINGSBOARD_SERVER "157.245.126.104"
+#define THINGSBOARD_SERVER "165.227.19.103:"
 #define THINGSBOARD_PORT    80
 
 // Initialize GSM modem
@@ -348,10 +351,13 @@ int ADC_LUT[4096] = { 0,
 } ;
 
 void setup() {
+
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_0);
   // put your setup code here, to run once:
   //inicializar puerto serial ESP32
   SerialMon.begin(115200);
-  delay(10);
+  delay(5000);
   SerialMon.println("Monitor serial inicializado");
   //Inicializar puerto serie SIM800L
   SerialAT.begin(115200);
@@ -430,29 +436,7 @@ void loop() {
   //  SerialAT.write(SerialMon.read());
   //}
   
-  //Si el modem está conectado intentar conectarse a la red gsrm
-  if (!modemConnected) {
-    SerialMon.print(F("Waiting for network..."));
-    if (!modem.waitForNetwork()) {
-        SerialMon.println(" fail");
-        delay(1000);
-        //return;
-    }
-    SerialMon.println(" OK");
-
-    SerialMon.print(F("Connecting to "));
-    // Se conecta al sistema de internet de la sim card
-    SerialMon.print(apn);
-    //realiza la conección y verifica el tema
-    if (!modem.gprsConnect(apn, gprsUser, gprsPass)) { //debería crear un loop que intente unas 5 veces y continue con el resto del código
-        SerialMon.println(" fail");
-        delay(10000);
-        //return;
-    }
-
-    modemConnected = true;
-    SerialMon.println(" OK");
-  }
+  
   //leer hora actual
   DateTime now = rtc.now();
   SerialMon.println(now.unixtime());
@@ -480,11 +464,15 @@ sensors.requestTemperatures();
   Serial.println("ºF");
   //leer sensor de corriente
   //Leer corriente pin 34
-  double Irms3 = calcIrms(1480, 34);
+  //double Irms3 = calcIrms(1480, 34);
+  float Irms3 = get_corriente_3();
+  SerialMon.print("Corriente AC: ");
+  SerialMon.println(Irms3);
   //Leer corriente pin 35
   double Irms2 = calcIrms(1480, 35);
   //Leer corriente pin 32
-  double Irms1 = calclIrms(1480, 32);
+  double Irms1 = calcIrms(1480, 32);
+//falta añadir el código aquí!!!!!
   //leer sensor de voltaje DC
    sensorValue = analogRead(sensorPin);          // realizar la lectura
    sensorValue = (int)ADC_LUT[sensorValue];
@@ -494,9 +482,51 @@ sensors.requestTemperatures();
   SerialMon.print("voltaje DC esc: ");
   SerialMon.println(value);
   //guardar json en la SD
+const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3)+50; //se crea un documento json a enviar
+DynamicJsonDocument doc(capacity);
+String var1 =String(now.unixtime());  //Enviar solo horario UTC, thingsboard lo adaptará al horario del usuario
+String var2 ="000";
+String combinedString = "";
+combinedString = var1 + var2;
 
+doc["ts"] = combinedString;
+
+JsonObject values = doc.createNestedObject("values");
+values["temperatura"] = temperatureC;
+values["voltajeDC"] = value;
+values["corrienteAC"] = Irms3;
+char output[100];
+serializeJson(doc, output);
+//SD.begin();
+char result[120];   // array to hold the result.
+strcpy(result,output); // copy string one into the result.
+strcat(result,"\r\n"); // append string two to the result.
+appendFile(SD, "/data.txt", result);
+//appendFile(SD, "/data.txt", "ejemplo\r\n");
   //leer stack de datos
+//Si el modem está conectado intentar conectarse a la red gsrm
+  if (!modemConnected) {
+    SerialMon.print(F("Waiting for network..."));
+    if (!modem.waitForNetwork()) {
+        SerialMon.println(" fail");
+        delay(1000);
+        return;
+    }
+    SerialMon.println(" OK");
 
+    SerialMon.print(F("Connecting to "));
+    // Se conecta al sistema de internet de la sim card
+    SerialMon.print(apn);
+    //realiza la conección y verifica el tema
+    if (!modem.gprsConnect(apn, gprsUser, gprsPass)) { //debería crear un loop que intente unas 5 veces y continue con el resto del código
+        SerialMon.println(" fail");
+        delay(1000);
+        return;
+    }
+
+    modemConnected = true;
+    SerialMon.println(" OK");
+  }
   //intentar enviar los datos a la plataforma
   if (!tb.connected()) {
     // Connect to the ThingsBoard
@@ -515,34 +545,13 @@ sensors.requestTemperatures();
   // Uploads new telemetry to ThingsBoard using MQTT. 
   // Se envía los datos de telemetría a Thingsboard usando MQTT.
   // See https://thingsboard.io/docs/reference/mqtt-api/#telemetry-upload-api 
-const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3)+50; //se crea un documento json a enviar
-DynamicJsonDocument doc(capacity);
-String var1 =String(now.unixtime());  //Enviar solo horario UTC, thingsboard lo adaptará al horario del usuario
-String var2 ="000";
-String combinedString = "";
-combinedString = var1 + var2;
 
-doc["ts"] = combinedString;
-
-JsonObject values = doc.createNestedObject("values");
-values["temperatura"] = temperatureC;
-values["voltajeDC"] = value;
-values["corrienteAC"] = 50.2;
-char output[100];
-serializeJson(doc, output);
-//SD.begin();
-char result[120];   // array to hold the result.
-strcpy(result,output); // copy string one into the result.
-strcat(result,"\r\n"); // append string two to the result.
-appendFile(SD, "/data.txt", result);
-//appendFile(SD, "/data.txt", "ejemplo\r\n");
   tb.sendTelemetryJson(output);
   //tb.sendTelemetryFloat("temperatura", random(50,400)/10.0);
   //tb.sendTelemetryFloat("voltajeDC", random(100, 140)/10.0);
   //tb.sendTelemetryFloat("corrienteAC", random(100, 1000)/10.0);
 
   tb.loop();
-  delay(59000);
 }
 // Write to the SD card (DON'T MODIFY THIS FUNCTION)
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
@@ -707,15 +716,16 @@ float fmap(float x, float in_min, float in_max, float out_min, float out_max)
    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 //Funciónes para medir corriente
-double calcIrms(unsigned int Number_of_Samples, inPinI)
+double calcIrms(unsigned int Number_of_Samples, int inPinI)
 {
   //int SupplyVoltage=3300;
   for (unsigned int n = 0; n < Number_of_Samples; n++)
   {
     sampleI = analogRead(inPinI);
-    //sampleI = (int)ADC_LUT[sampleI];
-    voltageI = get_raw_voltage(sampleI);
-    //voltageI = map(sampleI, 0, 1240, 0, 1100);
+    //Serial.print(sampleI);
+    sampleI = (int)ADC_LUT[sampleI];
+    //Serial.print(sampleI);
+    voltageI = map(sampleI, 0, 4095, 0, 3300);
     //Serial.print("Medicion en bits: ");
     //Serial.println(sampleI);
     // Digital low pass filter extracts the 2.5 V or 1.65 V dc offset,
@@ -724,8 +734,8 @@ double calcIrms(unsigned int Number_of_Samples, inPinI)
     //Serial.print("offsetI: ");
     //Serial.print(offsetI);
     //filteredI = voltageI - offsetI;
-    //Serial.print("filteredI: ");
-    //Serial.println(filteredI);
+   //Serial.print("VoltageI: ");
+   //Serial.println(voltageI);
     // Root-mean-square method current
     // 1) square current values
     sqI = voltageI * voltageI;
@@ -735,12 +745,80 @@ double calcIrms(unsigned int Number_of_Samples, inPinI)
   }
 
   //double I_RATIO = ICAL *((SupplyVoltage/1000.0) / (ADC_COUNTS));
-  I_RATIO = 
-  Irms = I_RATIO * sqrt(sumI / Number_of_Samples);
+  float I_RATIO = 111.1*(1.1/4096);
+  float Irms = I_RATIO * sqrt(sumI / Number_of_Samples);
 
   //Reset accumulators
   sumI = 0;
   //--------------------------------------------------------------------------------------
 
   return Irms;
+}
+
+float get_corriente_3()
+{
+  int conversion;
+  float voltajeSensor;
+  float corriente=0;
+  float Sumatoria=0;
+  long tiempo=millis();
+  int N=0;
+  while(millis()-tiempo<600)//Duración 0.5 segundos(Aprox. 30 ciclos de 60Hz)
+  { 
+    conversion = analogRead(34);
+    conversion = (int)ADC_LUT[conversion];
+    voltajeSensor = conversion * (3.3 / 4095);////voltaje del sensor
+    corriente=voltajeSensor*100; //corriente=VoltajeSensor*(30A/1V)
+    Sumatoria=Sumatoria+sq(corriente);//Sumatoria de Cuadrados
+    N=N+1;
+    delay(1);
+  }
+  Sumatoria=Sumatoria*2;//Para compensar los cuadrados de los semiciclos negativos.
+  corriente=sqrt((Sumatoria)/N); //ecuación del RMS
+  return(corriente);
+}
+
+float get_corriente_2()
+{
+  int conversion;
+  float voltajeSensor;
+  float corriente=0;
+  float Sumatoria=0;
+  long tiempo=millis();
+  int N=0;
+  while(millis()-tiempo<600)//Duración 0.5 segundos(Aprox. 30 ciclos de 60Hz)
+  { 
+    conversion = analogRead(35);
+    conversion = (int)ADC_LUT[conversion];
+    voltajeSensor = conversion * (3.3 / 4095);////voltaje del sensor
+    corriente=voltajeSensor*100; //corriente=VoltajeSensor*(30A/1V)
+    Sumatoria=Sumatoria+sq(corriente);//Sumatoria de Cuadrados
+    N=N+1;
+    delay(1);
+  }
+  Sumatoria=Sumatoria*2;//Para compensar los cuadrados de los semiciclos negativos.
+  corriente=sqrt((Sumatoria)/N); //ecuación del RMS
+  return(corriente);
+}
+float get_corriente_1()
+{
+  int conversion;
+  float voltajeSensor;
+  float corriente=0;
+  float Sumatoria=0;
+  long tiempo=millis();
+  int N=0;
+  while(millis()-tiempo<600)//Duración 0.5 segundos(Aprox. 30 ciclos de 60Hz)
+  { 
+    conversion = analogRead(32);
+    conversion = (int)ADC_LUT[conversion];
+    voltajeSensor = conversion * (3.3 / 4095);////voltaje del sensor
+    corriente=voltajeSensor*100; //corriente=VoltajeSensor*(30A/1V)
+    Sumatoria=Sumatoria+sq(corriente);//Sumatoria de Cuadrados
+    N=N+1;
+    delay(1);
+  }
+  Sumatoria=Sumatoria*2;//Para compensar los cuadrados de los semiciclos negativos.
+  corriente=sqrt((Sumatoria)/N); //ecuación del RMS
+  return(corriente);
 }
