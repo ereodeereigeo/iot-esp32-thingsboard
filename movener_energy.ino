@@ -14,6 +14,10 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 const int sensorPin = 33;   // seleccionar la entrada para el sensor
+int inPinI;
+int sampleI;
+float sqV,sumV,sqI,sumI,instP,sumP; 
+float voltageI;
 int sensorValue;         // variable que almacena el valor raw (0 a 1023)
 float value;   
 // GPIO where the DS18B20 is connected to
@@ -475,7 +479,12 @@ sensors.requestTemperatures();
   Serial.print(temperatureF);
   Serial.println("ºF");
   //leer sensor de corriente
-//falta añadir el código aquí!!!!!
+  //Leer corriente pin 34
+  double Irms3 = calcIrms(1480, 34);
+  //Leer corriente pin 35
+  double Irms2 = calcIrms(1480, 35);
+  //Leer corriente pin 32
+  double Irms1 = calclIrms(1480, 32);
   //leer sensor de voltaje DC
    sensorValue = analogRead(sensorPin);          // realizar la lectura
    sensorValue = (int)ADC_LUT[sensorValue];
@@ -696,4 +705,42 @@ void testFileIO(fs::FS &fs, const char * path){
 float fmap(float x, float in_min, float in_max, float out_min, float out_max)
 {
    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+//Funciónes para medir corriente
+double calcIrms(unsigned int Number_of_Samples, inPinI)
+{
+  //int SupplyVoltage=3300;
+  for (unsigned int n = 0; n < Number_of_Samples; n++)
+  {
+    sampleI = analogRead(inPinI);
+    //sampleI = (int)ADC_LUT[sampleI];
+    voltageI = get_raw_voltage(sampleI);
+    //voltageI = map(sampleI, 0, 1240, 0, 1100);
+    //Serial.print("Medicion en bits: ");
+    //Serial.println(sampleI);
+    // Digital low pass filter extracts the 2.5 V or 1.65 V dc offset,
+    //  then subtract this - signal is now centered on 0 counts.
+    //offsetI = (offsetI + (voltageI-offsetI)/4096);
+    //Serial.print("offsetI: ");
+    //Serial.print(offsetI);
+    //filteredI = voltageI - offsetI;
+    //Serial.print("filteredI: ");
+    //Serial.println(filteredI);
+    // Root-mean-square method current
+    // 1) square current values
+    sqI = voltageI * voltageI;
+    //sqI = filteredI * filteredI;
+    // 2) sum
+    sumI += sqI;
+  }
+
+  //double I_RATIO = ICAL *((SupplyVoltage/1000.0) / (ADC_COUNTS));
+  I_RATIO = 
+  Irms = I_RATIO * sqrt(sumI / Number_of_Samples);
+
+  //Reset accumulators
+  sumI = 0;
+  //--------------------------------------------------------------------------------------
+
+  return Irms;
 }
