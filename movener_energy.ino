@@ -1,4 +1,5 @@
 //Incluir librerías a utilizar
+#include <esp_adc_cal.h>
 #define TINY_GSM_MODEM_SIM800 //Se define modelo de modulo sim
 #include <TinyGsmClient.h> //Se incluye libreria TinyGSM para controlar los comandos AT hacia el modulo SIM
 #include "ThingsBoard.h" //Se incluye libreria de thingsboard para conectar y enviar los datos via mqtt
@@ -7,26 +8,34 @@
 #include <Wire.h>
 #include "RTClib.h"
 #include <string.h>
-// Libraries for SD card
+// Librerías para la tarjeta SD
 #include "FS.h"
 #include "SD.h"
 #include <SPI.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+
+int inPinI;
+int sampleI;
+float sqV,sumV,sqI,sumI,instP,sumP; 
+float voltageI;     
+esp_adc_cal_characteristics_t *adc_chars = new esp_adc_cal_characteristics_t;
 const int sensorPin = 33;   // seleccionar la entrada para el sensor
 int sensorValue;         // variable que almacena el valor raw (0 a 1023)
 float value;   
 // GPIO where the DS18B20 is connected to
+// Pin en donde el sensor de temperatura DS18B20 está conectado
 const int oneWireBus = 2;
 // Setup a oneWire instance to communicate with any OneWire devices
+// Configurar una instancia de oneWire para comunicarlo con cualquier otro dispositivo OneWire
 OneWire oneWire(oneWireBus);
 // Pass our oneWire reference to Dallas Temperature sensor 
+// Pasar la referencia de oneWire al sensor de temperatura Dallas Temperature
 DallasTemperature sensors(&oneWire);
 
 // Declaramos un RTC DS3231
 RTC_DS3231 rtc;
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-//declarar todas las variables con minuscula!!
 //Asignar datos de la tarjeta sim
   //Asignar dirección compañía de celular
   const char apn[] = "bam.entelpcs.cl";
@@ -55,25 +64,33 @@ char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursd
 const char id_serie[] = "A001";
 
 //Asignar access token thingsboard
-#define TOKEN "VZ7InVhdzmGUHf2b5IPC"
+#define TOKEN "fjmLOpl4aQGDLhBg8wTP"
 
 //Asignar IP thingsboard
-#define THINGSBOARD_SERVER "157.245.126.104"
+#define THINGSBOARD_SERVER "165.227.19.103:"
 #define THINGSBOARD_PORT    80
 
 // Initialize GSM modem
+// Inicializar modem GSM
 TinyGsm modem(SerialAT);
 
 // Initialize GSM client
+// Inicializar cliente GSM
 TinyGsmClient client(modem);
 
 // Initialize ThingsBoard instance
+// Inicializar instancia de Thingsboard
 ThingsBoard tb(client);
 // Set to true, if modem is connected
+// Colocar en True si el modem está conectado
 bool modemConnected = false;
 
+// Definir variable de string para el mensaje a enviar a thingsboard
 String dataMessage;
 
+// Se define una lookup table para corregir la no linealidad del pin analógico del ESP32
+// Esta lookup table está sacada de un comentario y no corresponde exactamente a todos los ESP sin embargo aproxima mejor el comportamiento
+// Para mejorar esto hay que mapear el rango para cada dispositivo con un osciloscopio y un generador de señal
 int ADC_LUT[4096] = { 0,
 0,66,70,74,78,81,82,83,85,86,87,89,90,91,92,94,
 95,96,97,98,99,100,101,102,103,104,105,106,106,107,108,109,
@@ -332,11 +349,15 @@ int ADC_LUT[4096] = { 0,
 4057,4058,4058,4059,4059,4060,4060,4061,4061,4062,4062,4063,4063,4064,4065,4066,
 4067,4068,4069,4070,4070,4071,4072,4073,4074,4075,4076,4077,4078,4079,4080
 } ;
+
 void setup() {
+
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_0);
   // put your setup code here, to run once:
   //inicializar puerto serial ESP32
   SerialMon.begin(115200);
-  delay(10);
+  delay(5000);
   SerialMon.println("Monitor serial inicializado");
   //Inicializar puerto serie SIM800L
   SerialAT.begin(115200);
@@ -348,7 +369,7 @@ void setup() {
   //inicializar RTC
   if (! rtc.begin()) {
  Serial.println("No hay un módulo RTC");
- while (1);
+ //while (1);
  }
  //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
  
@@ -356,28 +377,33 @@ void setup() {
 sensors.begin();
 
   //inicializar sensor de voltaje DC
-
+// no se inicializa ya que es un pin analógico que sólo se activa al leer el voltaje en el pin
   //inicializar sensor de corriente
-
+// no se inicializa ya que es un pin analógico que solo se activa al leer el voltaje en el pin
   //inicializar SD
 // Initialize SD card
-  SD.begin();  
-  if(!SD.begin()) {
+// Se inicializa la tarjeta SD
+  SD.begin(); 
+// si SD.begin() entrega un valor 0 entonces significa que falló y se imprime en el puerto serial
+  if(!SD.begin()) {  
     Serial.println("Card Mount Failed");
-    return;
+    //return;
   }
-  uint8_t cardType = SD.cardType();
+  uint8_t cardType = SD.cardType(); //se extrae variable del tipo de tarjeta, si entrega None, significa que no hay una tarjeta SD
   if(cardType == CARD_NONE) {
     Serial.println("No SD card attached");
-    return;
+    //return;
   }
+  // otra vez se chequea si la tarjeta SD está activa
   Serial.println("Initializing SD card...");
   if (!SD.begin()) {
     Serial.println("ERROR - SD card initialization failed!");
-    return;    // init failed
+    //return;    // init failed
   }
   // If the data.txt file doesn't exist
+  // SI el documento data.txt no existe
   // Create a file on the SD card and write the data labels
+  // crear el documento en la tarjeta SD y escribir el encabezado
   File file = SD.open("/data.txt");
   if(!file) {
     Serial.println("File doens't exist");
@@ -385,20 +411,23 @@ sensors.begin();
     writeFile(SD, "/data.txt", "json_data \r\n");
   }
   else {
-    Serial.println("File already exists");  
+    Serial.println("File already exists"); // si detecta el archivo simplemente lo cierra 
   }
   file.close();
   //inicializar MODEM
-  modem.init();
-  String modemInfo = modem.getModemInfo();
-  SerialMon.print(F("Modem: "));
+  modem.init(); //inicializa el modem
+  String modemInfo = modem.getModemInfo(); //solicita la información del modem
+  //imprime la información del modem (colocar ejemplo de output)
+  SerialMon.print(F("Modem: ")); 
   SerialMon.println(modemInfo);
 }
 
 void loop() {
-  delay(1000);
+  delay(1000); //delay de 1 segundo antes de ejecutar el resto del código, al final del código es un delay de 59 seg para en resultado 
+  //crear un loop que lea los datos cada 1 minuto y los envíe por internet a la plataforma
   // put your main code here, to run repeatedly:
-//Read SIM800 output (if available) and print it in Arduino IDE Serial Monitor
+//código para testear los comandos AT desde la consola serial
+  //Read SIM800 output (if available) and print it in Arduino IDE Serial Monitor
 //  if(SerialAT.available()){
 //    SerialMon.write(SerialAT.read());
 //  }
@@ -406,26 +435,8 @@ void loop() {
 //  if(SerialMon.available()){    
   //  SerialAT.write(SerialMon.read());
   //}
-  if (!modemConnected) {
-    SerialMon.print(F("Waiting for network..."));
-    if (!modem.waitForNetwork()) {
-        SerialMon.println(" fail");
-        delay(10000);
-        return;
-    }
-    SerialMon.println(" OK");
-
-    SerialMon.print(F("Connecting to "));
-    SerialMon.print(apn);
-    if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
-        SerialMon.println(" fail");
-        delay(10000);
-        return;
-    }
-
-    modemConnected = true;
-    SerialMon.println(" OK");
-  }
+  
+  
   //leer hora actual
   DateTime now = rtc.now();
   SerialMon.println(now.unixtime());
@@ -452,7 +463,16 @@ sensors.requestTemperatures();
   Serial.print(temperatureF);
   Serial.println("ºF");
   //leer sensor de corriente
-
+  //Leer corriente pin 34
+  //double Irms3 = calcIrms(1480, 34);
+  float Irms3 = get_corriente_3();
+  SerialMon.print("Corriente AC: ");
+  SerialMon.println(Irms3);
+  //Leer corriente pin 35
+  double Irms2 = calcIrms(1480, 35);
+  //Leer corriente pin 32
+  double Irms1 = calcIrms(1480, 32);
+//falta añadir el código aquí!!!!!
   //leer sensor de voltaje DC
    sensorValue = analogRead(sensorPin);          // realizar la lectura
    sensorValue = (int)ADC_LUT[sensorValue];
@@ -462,28 +482,7 @@ sensors.requestTemperatures();
   SerialMon.print("voltaje DC esc: ");
   SerialMon.println(value);
   //guardar json en la SD
-
-  //leer stack de datos
-
-  //intentar enviar los datos a la plataforma
-  if (!tb.connected()) {
-    // Connect to the ThingsBoard
-    SerialMon.print("Connecting to: ");
-    SerialMon.print(THINGSBOARD_SERVER);
-    SerialMon.print(" with token ");
-    SerialMon.println(TOKEN);
-    if (!tb.connect(THINGSBOARD_SERVER, TOKEN)) {
-      SerialMon.println("Failed to connect");
-      return;
-    }
-  }
-
-  SerialMon.println("Sending data...");
-
-  // Uploads new telemetry to ThingsBoard using MQTT. 
-  // See https://thingsboard.io/docs/reference/mqtt-api/#telemetry-upload-api 
-  // for more details
-const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3)+50;
+const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3)+50; //se crea un documento json a enviar
 DynamicJsonDocument doc(capacity);
 String var1 =String(now.unixtime());  //Enviar solo horario UTC, thingsboard lo adaptará al horario del usuario
 String var2 ="000";
@@ -495,7 +494,7 @@ doc["ts"] = combinedString;
 JsonObject values = doc.createNestedObject("values");
 values["temperatura"] = temperatureC;
 values["voltajeDC"] = value;
-values["corrienteAC"] = 50.2;
+values["corrienteAC"] = Irms3;
 char output[100];
 serializeJson(doc, output);
 //SD.begin();
@@ -504,13 +503,55 @@ strcpy(result,output); // copy string one into the result.
 strcat(result,"\r\n"); // append string two to the result.
 appendFile(SD, "/data.txt", result);
 //appendFile(SD, "/data.txt", "ejemplo\r\n");
+  //leer stack de datos
+//Si el modem está conectado intentar conectarse a la red gsrm
+  if (!modemConnected) {
+    SerialMon.print(F("Waiting for network..."));
+    if (!modem.waitForNetwork()) {
+        SerialMon.println(" fail");
+        delay(1000);
+        return;
+    }
+    SerialMon.println(" OK");
+
+    SerialMon.print(F("Connecting to "));
+    // Se conecta al sistema de internet de la sim card
+    SerialMon.print(apn);
+    //realiza la conección y verifica el tema
+    if (!modem.gprsConnect(apn, gprsUser, gprsPass)) { //debería crear un loop que intente unas 5 veces y continue con el resto del código
+        SerialMon.println(" fail");
+        delay(1000);
+        return;
+    }
+
+    modemConnected = true;
+    SerialMon.println(" OK");
+  }
+  //intentar enviar los datos a la plataforma
+  if (!tb.connected()) {
+    // Connect to the ThingsBoard
+    SerialMon.print("Connecting to: ");
+    SerialMon.print(THINGSBOARD_SERVER);
+    SerialMon.print(" with token ");
+    SerialMon.println(TOKEN);
+    if (!tb.connect(THINGSBOARD_SERVER, TOKEN)) {
+      SerialMon.println("Failed to connect");
+      return; //Se podría intentar un número de intentos antes de salir del void loop()
+    }
+  }
+
+  SerialMon.println("Sending data...");
+
+  // Uploads new telemetry to ThingsBoard using MQTT. 
+  // Se envía los datos de telemetría a Thingsboard usando MQTT.
+  // See https://thingsboard.io/docs/reference/mqtt-api/#telemetry-upload-api 
+
   tb.sendTelemetryJson(output);
   //tb.sendTelemetryFloat("temperatura", random(50,400)/10.0);
   //tb.sendTelemetryFloat("voltajeDC", random(100, 140)/10.0);
   //tb.sendTelemetryFloat("corrienteAC", random(100, 1000)/10.0);
 
   tb.loop();
-  delay(59000);
 }
 // Write to the SD card (DON'T MODIFY THIS FUNCTION)
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
@@ -673,4 +714,111 @@ void testFileIO(fs::FS &fs, const char * path){
 float fmap(float x, float in_min, float in_max, float out_min, float out_max)
 {
    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+//Funciónes para medir corriente
+double calcIrms(unsigned int Number_of_Samples, int inPinI)
+{
+  //int SupplyVoltage=3300;
+  for (unsigned int n = 0; n < Number_of_Samples; n++)
+  {
+    sampleI = analogRead(inPinI);
+    //Serial.print(sampleI);
+    sampleI = (int)ADC_LUT[sampleI];
+    //Serial.print(sampleI);
+    voltageI = map(sampleI, 0, 4095, 0, 3300);
+    //Serial.print("Medicion en bits: ");
+    //Serial.println(sampleI);
+    // Digital low pass filter extracts the 2.5 V or 1.65 V dc offset,
+    //  then subtract this - signal is now centered on 0 counts.
+    //offsetI = (offsetI + (voltageI-offsetI)/4096);
+    //Serial.print("offsetI: ");
+    //Serial.print(offsetI);
+    //filteredI = voltageI - offsetI;
+   //Serial.print("VoltageI: ");
+   //Serial.println(voltageI);
+    // Root-mean-square method current
+    // 1) square current values
+    sqI = voltageI * voltageI;
+    //sqI = filteredI * filteredI;
+    // 2) sum
+    sumI += sqI;
+  }
+
+  //double I_RATIO = ICAL *((SupplyVoltage/1000.0) / (ADC_COUNTS));
+  float I_RATIO = 111.1*(1.1/4096);
+  float Irms = I_RATIO * sqrt(sumI / Number_of_Samples);
+
+  //Reset accumulators
+  sumI = 0;
+  //--------------------------------------------------------------------------------------
+
+  return Irms;
+}
+
+float get_corriente_3()
+{
+  int conversion;
+  float voltajeSensor;
+  float corriente=0;
+  float Sumatoria=0;
+  long tiempo=millis();
+  int N=0;
+  while(millis()-tiempo<600)//Duración 0.5 segundos(Aprox. 30 ciclos de 60Hz)
+  { 
+    conversion = analogRead(34);
+    conversion = (int)ADC_LUT[conversion];
+    voltajeSensor = conversion * (3.3 / 4095);////voltaje del sensor
+    corriente=voltajeSensor*100; //corriente=VoltajeSensor*(30A/1V)
+    Sumatoria=Sumatoria+sq(corriente);//Sumatoria de Cuadrados
+    N=N+1;
+    delay(1);
+  }
+  Sumatoria=Sumatoria*2;//Para compensar los cuadrados de los semiciclos negativos.
+  corriente=sqrt((Sumatoria)/N); //ecuación del RMS
+  return(corriente);
+}
+
+float get_corriente_2()
+{
+  int conversion;
+  float voltajeSensor;
+  float corriente=0;
+  float Sumatoria=0;
+  long tiempo=millis();
+  int N=0;
+  while(millis()-tiempo<600)//Duración 0.5 segundos(Aprox. 30 ciclos de 60Hz)
+  { 
+    conversion = analogRead(35);
+    conversion = (int)ADC_LUT[conversion];
+    voltajeSensor = conversion * (3.3 / 4095);////voltaje del sensor
+    corriente=voltajeSensor*100; //corriente=VoltajeSensor*(30A/1V)
+    Sumatoria=Sumatoria+sq(corriente);//Sumatoria de Cuadrados
+    N=N+1;
+    delay(1);
+  }
+  Sumatoria=Sumatoria*2;//Para compensar los cuadrados de los semiciclos negativos.
+  corriente=sqrt((Sumatoria)/N); //ecuación del RMS
+  return(corriente);
+}
+float get_corriente_1()
+{
+  int conversion;
+  float voltajeSensor;
+  float corriente=0;
+  float Sumatoria=0;
+  long tiempo=millis();
+  int N=0;
+  while(millis()-tiempo<600)//Duración 0.5 segundos(Aprox. 30 ciclos de 60Hz)
+  { 
+    conversion = analogRead(32);
+    conversion = (int)ADC_LUT[conversion];
+    voltajeSensor = conversion * (3.3 / 4095);////voltaje del sensor
+    corriente=voltajeSensor*100; //corriente=VoltajeSensor*(30A/1V)
+    Sumatoria=Sumatoria+sq(corriente);//Sumatoria de Cuadrados
+    N=N+1;
+    delay(1);
+  }
+  Sumatoria=Sumatoria*2;//Para compensar los cuadrados de los semiciclos negativos.
+  corriente=sqrt((Sumatoria)/N); //ecuación del RMS
+  return(corriente);
 }
