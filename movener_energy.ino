@@ -767,8 +767,8 @@ float get_corriente_3()
   { 
     conversion = analogRead(34);
     conversion = (int)ADC_LUT[conversion];
-    voltajeSensor = conversion * (3.3 / 4095);////voltaje del sensor
-    corriente=voltajeSensor*100; //corriente=VoltajeSensor*(30A/1V)
+    voltajeSensor = conversion * (1.1 / 1023);////voltaje del sensor
+    corriente=voltajeSensor*111.1; //corriente=VoltajeSensor*(30A/1V)
     Sumatoria=Sumatoria+sq(corriente);//Sumatoria de Cuadrados
     N=N+1;
     delay(1);
@@ -790,8 +790,8 @@ float get_corriente_2()
   { 
     conversion = analogRead(35);
     conversion = (int)ADC_LUT[conversion];
-    voltajeSensor = conversion * (3.3 / 4095);////voltaje del sensor
-    corriente=voltajeSensor*100; //corriente=VoltajeSensor*(30A/1V)
+    voltajeSensor = conversion * (1.1 / 1023);////voltaje del sensor
+    corriente=voltajeSensor*111.1; //corriente=VoltajeSensor*(30A/1V)
     Sumatoria=Sumatoria+sq(corriente);//Sumatoria de Cuadrados
     N=N+1;
     delay(1);
@@ -812,8 +812,8 @@ float get_corriente_1()
   { 
     conversion = analogRead(32);
     conversion = (int)ADC_LUT[conversion];
-    voltajeSensor = conversion * (3.3 / 4095);////voltaje del sensor
-    corriente=voltajeSensor*100; //corriente=VoltajeSensor*(30A/1V)
+    voltajeSensor = conversion * (1.1 / 1023);////voltaje del sensor
+    corriente=voltajeSensor*111.1; //corriente=VoltajeSensor*(30A/1V)
     Sumatoria=Sumatoria+sq(corriente);//Sumatoria de Cuadrados
     N=N+1;
     delay(1);
