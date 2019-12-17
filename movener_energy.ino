@@ -64,10 +64,10 @@ char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursd
 const char id_serie[] = "A002";
 
 //Asignar access token thingsboard
-#define TOKEN "h5mwAV0czqa02ymLU8ZX"
+#define TOKEN "raeo5GYF2MwZJuPVr5tC"
 
 //Asignar IP thingsboard
-#define THINGSBOARD_SERVER "165.227.19.103:"
+#define THINGSBOARD_SERVER "157.245.119.181"
 #define THINGSBOARD_PORT    80
 
 // Initialize GSM modem
