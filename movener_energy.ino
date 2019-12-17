@@ -64,7 +64,7 @@ char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursd
 const char id_serie[] = "A003";
 
 //Asignar access token thingsboard
-#define TOKEN "bYsbq2IMe7FG5ZJHxhEg"
+#define TOKEN "A003"
 
 //Asignar IP thingsboard
 #define THINGSBOARD_SERVER "157.245.119.181"
