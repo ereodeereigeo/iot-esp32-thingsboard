@@ -15,6 +15,10 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
+int bits;
+int maximum_bits;
+float Irms;
+float offset = 150;
 int inPinI;
 int sampleI;
 float sqV,sumV,sqI,sumI,instP,sumP; 
@@ -47,7 +51,7 @@ char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursd
   const char gprsPass[] = "entelpcs";
   
   //Asignar PIN
-  const char simPIN[] = "6220";
+  const char simPIN[] = "";
 
 //inicializar hardware serial monitor
 #define SerialMon Serial
@@ -766,15 +770,20 @@ float get_corriente_3()
   while(millis()-tiempo<600)//Duración 0.5 segundos(Aprox. 30 ciclos de 60Hz)
   { 
     conversion = analogRead(34);
-    conversion = (int)ADC_LUT[conversion];
-    voltajeSensor = conversion * (3.3 / 4095);////voltaje del sensor
-    corriente=voltajeSensor*100; //corriente=VoltajeSensor*(30A/1V)
+    //conversion = (int)ADC_LUT[conversion];
+    //voltajeSensor = conversion * (1.1 / 4095);////voltaje del sensor
+    //corriente=voltajeSensor*111.1; //corriente=VoltajeSensor*(30A/1V)
+    corriente = conversion;
     Sumatoria=Sumatoria+sq(corriente);//Sumatoria de Cuadrados
     N=N+1;
     delay(1);
   }
   Sumatoria=Sumatoria*2;//Para compensar los cuadrados de los semiciclos negativos.
   corriente=sqrt((Sumatoria)/N); //ecuación del RMS
+  if (corriente > 0) {
+    corriente = corriente + offset;
+  }
+  corriente = corriente * (3.3 / 4095) * 100;
   return(corriente);
 }
 
@@ -789,15 +798,20 @@ float get_corriente_2()
   while(millis()-tiempo<600)//Duración 0.5 segundos(Aprox. 30 ciclos de 60Hz)
   { 
     conversion = analogRead(35);
-    conversion = (int)ADC_LUT[conversion];
-    voltajeSensor = conversion * (3.3 / 4095);////voltaje del sensor
-    corriente=voltajeSensor*100; //corriente=VoltajeSensor*(30A/1V)
+    //conversion = (int)ADC_LUT[conversion];
+    //voltajeSensor = conversion * (1.1 / 4095);////voltaje del sensor
+    //corriente=voltajeSensor*111.1; //corriente=VoltajeSensor*(30A/1V)
+    corriente = conversion;
     Sumatoria=Sumatoria+sq(corriente);//Sumatoria de Cuadrados
     N=N+1;
     delay(1);
   }
   Sumatoria=Sumatoria*2;//Para compensar los cuadrados de los semiciclos negativos.
   corriente=sqrt((Sumatoria)/N); //ecuación del RMS
+  if (corriente > 0) {
+    corriente = corriente + offset;
+  }
+  corriente = corriente * (3.3 / 4095) * 100;
   return(corriente);
 }
 float get_corriente_1()
@@ -811,14 +825,19 @@ float get_corriente_1()
   while(millis()-tiempo<600)//Duración 0.5 segundos(Aprox. 30 ciclos de 60Hz)
   { 
     conversion = analogRead(32);
-    conversion = (int)ADC_LUT[conversion];
-    voltajeSensor = conversion * (3.3 / 4095);////voltaje del sensor
-    corriente=voltajeSensor*100; //corriente=VoltajeSensor*(30A/1V)
+    //conversion = (int)ADC_LUT[conversion];
+    //voltajeSensor = conversion * (1.1 / 4095);////voltaje del sensor
+    //corriente=voltajeSensor*111.1; //corriente=VoltajeSensor*(30A/1V)
+    corriente = conversion;
     Sumatoria=Sumatoria+sq(corriente);//Sumatoria de Cuadrados
     N=N+1;
     delay(1);
   }
   Sumatoria=Sumatoria*2;//Para compensar los cuadrados de los semiciclos negativos.
   corriente=sqrt((Sumatoria)/N); //ecuación del RMS
+  if (corriente > 0) {
+    corriente = corriente + offset;
+  }
+  corriente = corriente * (3.3 / 4095) * 100;
   return(corriente);
 }
