@@ -427,7 +427,7 @@ sensors.begin();
 }
 
 void loop() {
-  delay(1000); //delay de 1 segundo antes de ejecutar el resto del código, al final del código es un delay de 59 seg para en resultado 
+  delay(59000); //delay de 1 segundo antes de ejecutar el resto del código, al final del código es un delay de 59 seg para en resultado 
   //crear un loop que lea los datos cada 1 minuto y los envíe por internet a la plataforma
   // put your main code here, to run repeatedly:
 //código para testear los comandos AT desde la consola serial
@@ -556,6 +556,7 @@ appendFile(SD, "/data.txt", result);
   //tb.sendTelemetryFloat("corrienteAC", random(100, 1000)/10.0);
 
   tb.loop();
+  delay(1000);
 }
 // Write to the SD card (DON'T MODIFY THIS FUNCTION)
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
