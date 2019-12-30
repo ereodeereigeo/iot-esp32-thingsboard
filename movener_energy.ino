@@ -42,7 +42,7 @@ RTC_DS3231 rtc;
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 //Asignar datos de la tarjeta sim
   //Asignar dirección compañía de celular
-  const char apn[] = "bam.entelpcs.cl";
+  const char apn[] = "m2m.entel.cl";
   
   //Asignar user
   const char gprsUser[] = "entelpcs";
