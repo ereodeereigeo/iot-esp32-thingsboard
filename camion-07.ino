@@ -65,10 +65,10 @@ char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursd
 #define TXD2 17
 
 //Asignar número de serie dispositivo
-const char id_serie[] = "A001";
+const char id_serie[] = "A006";
 
 //Asignar access token thingsboard
-#define TOKEN "A001"
+#define TOKEN "A2"
 
 //Asignar IP thingsboard
 #define THINGSBOARD_SERVER "157.245.119.181"
