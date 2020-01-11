@@ -496,9 +496,9 @@ combinedString = var1 + var2;
 doc["ts"] = combinedString;
 
 JsonObject values = doc.createNestedObject("values");
-values["temperatura"] = temperatureC;
-values["voltajeDC"] = value;
-values["corrienteAC"] = Irms3;
+values["T02"] = temperatureC;
+values["V02"] = value;
+values["C02"] = Irms3;
 char output[100];
 serializeJson(doc, output);
 //SD.begin();
