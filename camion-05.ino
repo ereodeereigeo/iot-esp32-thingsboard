@@ -71,7 +71,7 @@ const char id_serie[] = "A005";
 #define TOKEN "A1"
 
 //Asignar IP thingsboard
-#define THINGSBOARD_SERVER "157.245.119.181"
+#define THINGSBOARD_SERVER "192.241.142.219"
 #define THINGSBOARD_PORT    80
 
 // Initialize GSM modem
