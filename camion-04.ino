@@ -71,7 +71,7 @@ const char id_serie[] = "A004";
 #define TOKEN "A1"
 
 //Asignar IP thingsboard
-#define THINGSBOARD_SERVER "157.245.119.181"
+#define THINGSBOARD_SERVER "192.241.142.219"
 #define THINGSBOARD_PORT    80
 
 // Initialize GSM modem
@@ -427,7 +427,7 @@ sensors.begin();
 }
 
 void loop() {
-  delay(59000); //delay de 1 segundo antes de ejecutar el resto del código, al final del código es un delay de 59 seg para en resultado 
+  delay(119000); //delay de 1 segundo antes de ejecutar el resto del código, al final del código es un delay de 59 seg para en resultado 
   //crear un loop que lea los datos cada 1 minuto y los envíe por internet a la plataforma
   // put your main code here, to run repeatedly:
 //código para testear los comandos AT desde la consola serial
@@ -496,11 +496,12 @@ combinedString = var1 + var2;
 doc["ts"] = combinedString;
 
 JsonObject values = doc.createNestedObject("values");
-values["T04"] = temperatureC;
-values["V04"] = value;
-values["C04"] = Irms3;
-char output[100];
-serializeJson(doc, output);
+values["T04"] = round2(temperatureC);
+values["V04"] = round2(value);
+values["C04"] = round2(Irms3);
+char output[128];
+SerialMon.println(serializeJson(doc, output));
+SerialMon.println(output);
 //SD.begin();
 char result[120];   // array to hold the result.
 strcpy(result,output); // copy string one into the result.
@@ -840,4 +841,8 @@ float get_corriente_1()
   }
   corriente = corriente * (3.3 / 4095) * 100;
   return(corriente);
+}
+
+double round2(double value) {
+   return (int)(value * 100 + 0.5) / 100.0;
 }
