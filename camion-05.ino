@@ -375,7 +375,7 @@ void setup() {
  Serial.println("No hay un módulo RTC");
  //while (1);
  }
- //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+ artc.adjust(DateTime(F(__DATE__), F(__TIME__)));
  
   //inicializar sensor de temperatura
 sensors.begin();
@@ -486,7 +486,7 @@ sensors.requestTemperatures();
   SerialMon.print("voltaje DC esc: ");
   SerialMon.println(value);
   //guardar json en la SD
-const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3); //se crea un documento json a enviar
+const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3)+50; //se crea un documento json a enviar
 DynamicJsonDocument doc(capacity);
 String var1 =String(now.unixtime());  //Enviar solo horario UTC, thingsboard lo adaptará al horario del usuario
 String var2 ="000";
@@ -496,11 +496,12 @@ combinedString = var1 + var2;
 doc["ts"] = combinedString;
 
 JsonObject values = doc.createNestedObject("values");
-values["T05"] = temperatureC;
-values["V05"] = value;
-values["C05"] = Irms3;
-char output[100];
+values["T05"] = round2(temperatureC);
+values["V05"] = round2(value);
+values["C05"] = round2(Irms3);
+char output[128];
 SerialMon.println(serializeJson(doc, output));
+SerialMon.println(output);
 //SD.begin();
 char result[120];   // array to hold the result.
 strcpy(result,output); // copy string one into the result.
@@ -840,4 +841,8 @@ float get_corriente_1()
   }
   corriente = corriente * (3.3 / 4095) * 100;
   return(corriente);
+}
+
+double round2(double value) {
+   return (int)(value * 100 + 0.5) / 100.0;
 }
