@@ -486,7 +486,7 @@ sensors.requestTemperatures();
   SerialMon.print("voltaje DC esc: ");
   SerialMon.println(value);
   //guardar json en la SD
-const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3)+50; //se crea un documento json a enviar
+const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3); //se crea un documento json a enviar
 DynamicJsonDocument doc(capacity);
 String var1 =String(now.unixtime());  //Enviar solo horario UTC, thingsboard lo adaptará al horario del usuario
 String var2 ="000";
@@ -500,7 +500,7 @@ values["T05"] = temperatureC;
 values["V05"] = value;
 values["C05"] = Irms3;
 char output[100];
-serializeJson(doc, output);
+SerialMon.println(serializeJson(doc, output));
 //SD.begin();
 char result[120];   // array to hold the result.
 strcpy(result,output); // copy string one into the result.
