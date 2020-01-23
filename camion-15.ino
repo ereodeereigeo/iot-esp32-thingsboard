@@ -18,7 +18,7 @@
 int bits;
 int maximum_bits;
 float Irms;
-float offset = 120;
+float offset = 163;
 int inPinI;
 int sampleI;
 float sqV,sumV,sqI,sumI,instP,sumP; 
