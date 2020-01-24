@@ -428,6 +428,7 @@ sensors.begin();
 
 void loop() {
   delay(119000); //delay de 1 segundo antes de ejecutar el resto del código, al final del código es un delay de 59 seg para en resultado 
+  modem.init(); //inicializa el modem
   //crear un loop que lea los datos cada 1 minuto y los envíe por internet a la plataforma
   // put your main code here, to run repeatedly:
 //código para testear los comandos AT desde la consola serial
