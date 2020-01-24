@@ -515,6 +515,10 @@ appendFile(SD, "/data.txt", result);
     if (!modem.waitForNetwork()) {
         SerialMon.println(" fail");
         delay(1000);
+        pinMode(4,OUTPUT);
+        digitalWrite(4, HIGH);   // set the RTS off
+        delay(1000);
+        digitalWrite(4, LOW);   // set the RTS on
         return;
     }
     SerialMon.println(" OK");
