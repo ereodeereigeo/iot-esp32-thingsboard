@@ -521,6 +521,8 @@ appendFile(SD, "/data.txt", result);
         digitalWrite(4, HIGH);   // set the RTS off
         delay(1000);
         digitalWrite(4, LOW);   // set the RTS on
+        modem.gprsDisconnect();
+        modemConnected = false;
         return;
     }
     SerialMon.println(" OK");
@@ -537,6 +539,7 @@ appendFile(SD, "/data.txt", result);
         delay(1000);
         digitalWrite(4, LOW);   // set the RTS on
         modem.gprsDisconnect();
+        modemConnected = false;
         return;
     }
 
