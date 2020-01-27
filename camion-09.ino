@@ -477,7 +477,7 @@ void loop() {
     Serial.print(now.second(), DEC);
     Serial.println();
   //leer sensor de temperatura
-sensors.requestTemperatures(); 
+  sensors.requestTemperatures(); 
   float temperatureC = sensors.getTempCByIndex(0);
   float temperatureF = sensors.getTempFByIndex(0);
   Serial.print(temperatureC);
@@ -528,7 +528,8 @@ appendFile(SD, "/data.txt", result);
 //appendFile(SD, "/data.txt", "ejemplo\r\n");
   //leer stack de datos
 //Si el modem está conectado intentar conectarse a la red gsrm
-  if (!modemConnected) {
+  //primer loop modemConnected es false por ende
+  if (!modemConnected) { //modemConnected == False ; !modemConnected == true entonces entra al if
     SerialMon.print(F("Waiting for network..."));
     if (!modem.waitForNetwork()) {
         SerialMon.println(" fail");
