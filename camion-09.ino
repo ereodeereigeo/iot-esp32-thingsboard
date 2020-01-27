@@ -12,20 +12,21 @@
 #include "FS.h"
 #include "SD.h"
 #include <SPI.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
+#include <OneWire.h> //Librería para comunicación con el sensor de temperatura
+#include <DallasTemperature.h> //Librería para el sensor de temperatura
 
+//Parpametros sensor de corriente
 int bits;
 int maximum_bits;
 float Irms;
-float offset = 110;
+float offset = 110; //Modificar este offset para ajustar la corriente
 int inPinI;
 int sampleI;
 float sqV,sumV,sqI,sumI,instP,sumP; 
 float voltageI;     
 esp_adc_cal_characteristics_t *adc_chars = new esp_adc_cal_characteristics_t;
-const int sensorPin = 33;   // seleccionar la entrada para el sensor
-int sensorValue;         // variable que almacena el valor raw (0 a 1023)
+const int sensorPin = 33;   // seleccionar la entrada para el sensor de voltaje
+int sensorValue;         // variable que almacena el valor del sensor de voltaje raw (0 a 1023)
 float value;   
 // GPIO where the DS18B20 is connected to
 // Pin en donde el sensor de temperatura DS18B20 está conectado
@@ -356,8 +357,8 @@ int ADC_LUT[4096] = { 0,
 
 void setup() {
 
-  adc1_config_width(ADC_WIDTH_BIT_12);
-  adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_0);
+  adc1_config_width(ADC_WIDTH_BIT_12); //se define el ADC con 12 bits de resolución
+  adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_0); //Se restringe al canal 6 (pin 34) una atenuación de 0DB es decir funciona lineal entre 0 y 1.1V
   // put your setup code here, to run once:
   //inicializar puerto serial ESP32
   SerialMon.begin(115200);
@@ -377,6 +378,23 @@ void setup() {
  }
  //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
  
+  //leer hora actual
+  DateTime now = rtc.now();
+  SerialMon.println(now.unixtime());
+  Serial.print(now.year(), DEC);
+    Serial.print('/');
+    Serial.print(now.month(), DEC);
+    Serial.print('/');
+    Serial.print(now.day(), DEC);
+    Serial.print(" (");
+    Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
+    Serial.print(") ");
+    Serial.print(now.hour(), DEC);
+    Serial.print(':');
+    Serial.print(now.minute(), DEC);
+    Serial.print(':');
+    Serial.print(now.second(), DEC);
+    Serial.println();
   //inicializar sensor de temperatura
 sensors.begin();
 
@@ -473,9 +491,9 @@ sensors.requestTemperatures();
   SerialMon.print("Corriente AC: ");
   SerialMon.println(Irms3);
   //Leer corriente pin 35
-  double Irms2 = calcIrms(1480, 35);
+  //double Irms2 = calcIrms(1480, 35);
   //Leer corriente pin 32
-  double Irms1 = calcIrms(1480, 32);
+  //double Irms1 = calcIrms(1480, 32);
 //falta añadir el código aquí!!!!!
   //leer sensor de voltaje DC
    sensorValue = analogRead(sensorPin);          // realizar la lectura
