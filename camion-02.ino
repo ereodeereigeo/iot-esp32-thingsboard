@@ -535,6 +535,7 @@ appendFile(SD, "/data.txt", result);
         digitalWrite(4, HIGH);   // set the RTS off
         delay(1000);
         digitalWrite(4, LOW);   // set the RTS on
+        modem.gprsDisconnect();
         return;
     }
 
@@ -566,6 +567,7 @@ appendFile(SD, "/data.txt", result);
   //tb.sendTelemetryFloat("corrienteAC", random(100, 1000)/10.0);
 
   tb.loop();
+  modem.gprsDisconnect();
 }
 // Write to the SD card (DON'T MODIFY THIS FUNCTION)
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
