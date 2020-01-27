@@ -376,7 +376,23 @@ void setup() {
  //while (1);
  }
  //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
- 
+ //leer hora actual
+  DateTime now = rtc.now();
+  SerialMon.println(now.unixtime());
+  Serial.print(now.year(), DEC);
+    Serial.print('/');
+    Serial.print(now.month(), DEC);
+    Serial.print('/');
+    Serial.print(now.day(), DEC);
+    Serial.print(" (");
+    Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
+    Serial.print(") ");
+    Serial.print(now.hour(), DEC);
+    Serial.print(':');
+    Serial.print(now.minute(), DEC);
+    Serial.print(':');
+    Serial.print(now.second(), DEC);
+    Serial.println();
   //inicializar sensor de temperatura
 sensors.begin();
 
