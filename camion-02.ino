@@ -360,11 +360,11 @@ void setup() {
   adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_0);
   // put your setup code here, to run once:
   //inicializar puerto serial ESP32
-  SerialMon.begin(115200);
+  SerialMon.begin(38400);
   delay(5000);
   SerialMon.println("Monitor serial inicializado");
   //Inicializar puerto serie SIM800L
-  SerialAT.begin(115200);
+  SerialAT.begin(38400);
   delay(3000);
   pinMode(4,OUTPUT);
   digitalWrite(4, HIGH);   // set the RTS off
@@ -428,6 +428,7 @@ sensors.begin();
 
 void loop() {
   delay(119000); //delay de 1 segundo antes de ejecutar el resto del código, al final del código es un delay de 59 seg para en resultado 
+  SerialAT.begin(38400);
   modem.init(); //inicializa el modem
   //crear un loop que lea los datos cada 1 minuto y los envíe por internet a la plataforma
   // put your main code here, to run repeatedly:
