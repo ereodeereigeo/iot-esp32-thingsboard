@@ -554,7 +554,7 @@ appendFile(SD, "/data.txt", result);
         return;
     }
 
-    modemConnected = true;
+    modemConnected = false;
     SerialMon.println(" OK");
   }
   //intentar enviar los datos a la plataforma
