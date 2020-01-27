@@ -532,7 +532,10 @@ appendFile(SD, "/data.txt", result);
     SerialMon.print(F("Waiting for network..."));
     if (!modem.waitForNetwork()) {
         SerialMon.println(" fail");
-        ESP.restart();
+        pinMode(4,OUTPUT);
+  digitalWrite(4, HIGH);   // set the RTS off
+  delay(1000);
+  digitalWrite(4, LOW);   // set the RTS on
         return;
     }
     SerialMon.println(" OK");
@@ -544,7 +547,10 @@ appendFile(SD, "/data.txt", result);
     if (!modem.gprsConnect(apn, gprsUser, gprsPass)) { //debería crear un loop que intente unas 5 veces y continue con el resto del código
         SerialMon.println(" fail");
         delay(1000);
-        ESP.restart();
+        pinMode(4,OUTPUT);
+  digitalWrite(4, HIGH);   // set the RTS off
+  delay(1000);
+  digitalWrite(4, LOW);   // set the RTS on
         return;
     }
 
