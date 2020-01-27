@@ -581,6 +581,7 @@ appendFile(SD, "/data.txt", result);
   //tb.sendTelemetryFloat("corrienteAC", random(100, 1000)/10.0);
 
   tb.loop();
+  modemConnected = false;
 }
 // Write to the SD card (DON'T MODIFY THIS FUNCTION)
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
