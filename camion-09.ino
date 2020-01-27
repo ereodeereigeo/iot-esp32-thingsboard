@@ -529,9 +529,11 @@ appendFile(SD, "/data.txt", result);
   //leer stack de datos
 //Si el modem está conectado intentar conectarse a la red gsrm
   //primer loop modemConnected es false por ende
-  if (!modemConnected) { //modemConnected == False ; !modemConnected == true entonces entra al if
+  SerialMon.printf(modemConnected);
+  if (!modemConnected) { //modemConnected == false ; !modemConnected == true entonces entra al if
+    SerialMon.printf(modemConnected);
     SerialMon.print(F("Waiting for network..."));
-    if (!modem.waitForNetwork()) {
+    if (!modem.waitForNetwork()) { //si modem.waitForNetwork() es falso, entonces falla, sino, salta a OK
         SerialMon.println(" fail");
         delay(1000);
         pinMode(4,OUTPUT);
@@ -559,6 +561,7 @@ appendFile(SD, "/data.txt", result);
     modemConnected = true;
     SerialMon.println(" OK");
   }
+  SerialMon.println(modemConnected);
   //intentar enviar los datos a la plataforma
   if (!tb.connected()) {
     // Connect to the ThingsBoard
@@ -584,6 +587,7 @@ appendFile(SD, "/data.txt", result);
   //tb.sendTelemetryFloat("corrienteAC", random(100, 1000)/10.0);
 
   tb.loop();
+  SerialMon.println("Datos enviados");
 }
 // Write to the SD card (DON'T MODIFY THIS FUNCTION)
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
