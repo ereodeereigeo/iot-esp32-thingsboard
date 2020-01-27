@@ -529,9 +529,9 @@ appendFile(SD, "/data.txt", result);
   //leer stack de datos
 //Si el modem está conectado intentar conectarse a la red gsrm
   //primer loop modemConnected es false por ende
-  SerialMon.printf(modemConnected);
+  SerialMon.println(modemConnected);
   if (!modemConnected) { //modemConnected == false ; !modemConnected == true entonces entra al if
-    SerialMon.printf(modemConnected);
+    SerialMon.println(modemConnected);
     SerialMon.print(F("Waiting for network..."));
     if (!modem.waitForNetwork()) { //si modem.waitForNetwork() es falso, entonces falla, sino, salta a OK
         SerialMon.println(" fail");
