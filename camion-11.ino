@@ -443,6 +443,7 @@ sensors.begin();
 }
 
 void loop() {
+  modem.init();
   delay(119000); //delay de 1 segundo antes de ejecutar el resto del código, al final del código es un delay de 59 seg para en resultado 
   //crear un loop que lea los datos cada 1 minuto y los envíe por internet a la plataforma
   // put your main code here, to run repeatedly:
