@@ -443,7 +443,6 @@ sensors.begin();
 }
 
 void loop() {
-  delay(3000);
   modem.init(); //inicializa el modem
   delay(119000); //delay de 1 segundo antes de ejecutar el resto del código, al final del código es un delay de 59 seg para en resultado 
   //crear un loop que lea los datos cada 1 minuto y los envíe por internet a la plataforma
@@ -583,11 +582,6 @@ appendFile(SD, "/data.txt", result);
   //tb.sendTelemetryFloat("corrienteAC", random(100, 1000)/10.0);
 
   tb.loop();
-  delay(1000);
-  pinMode(4,OUTPUT);
-  digitalWrite(4, HIGH);   // set the RTS off
-  delay(1000);
-  digitalWrite(4, LOW);   // set the RTS on
 }
 // Write to the SD card (DON'T MODIFY THIS FUNCTION)
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
