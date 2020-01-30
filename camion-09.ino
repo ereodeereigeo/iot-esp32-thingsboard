@@ -609,8 +609,7 @@ char filename[18];
         //return;
     }
   File file = root.openNextFile();
-  int n = 0; 
-  while((n < 2) && file){
+  while(file){
             Serial.print("  FILE: ");
             Serial.print(file.name());
             Serial.print("  SIZE: ");
