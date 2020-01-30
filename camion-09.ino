@@ -436,6 +436,8 @@ sensors.begin();
     Serial.println("File already exists"); // si detecta el archivo simplemente lo cierra 
   }
   file.close();
+  //crear directorio para datos en cola
+  createDir(SD, "/queue");
   //inicializar MODEM
   modem.init(); //inicializa el modem
   String modemInfo = modem.getModemInfo(); //solicita la información del modem
@@ -627,7 +629,6 @@ char filename[18];
             if (tb.sendTelemetryJson(buff)){
               deleteFile(SD, filedirname);
             }
-            n = n+1;
   }
   //tb.sendTelemetryFloat("temperatura", random(50,400)/10.0);
   //tb.sendTelemetryFloat("voltajeDC", random(100, 140)/10.0);
