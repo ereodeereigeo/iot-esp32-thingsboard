@@ -19,7 +19,7 @@
 int bits;
 int maximum_bits;
 float Irms;
-float offset = 110; //Modificar este offset para ajustar la corriente
+float offset = 150; //Modificar este offset para ajustar la corriente
 int inPinI;
 int sampleI;
 float sqV,sumV,sqI,sumI,instP,sumP; 
@@ -85,7 +85,7 @@ TinyGsmClient client(modem);
 
 // Initialize ThingsBoard instance
 // Inicializar instancia de Thingsboard
-ThingsBoard tb(client);
+ThingsBoardSized<100> tb(client);
 // Set to true, if modem is connected
 // Colocar en True si el modem está conectado
 bool modemConnected = false;
@@ -354,7 +354,7 @@ int ADC_LUT[4096] = { 0,
 4057,4058,4058,4059,4059,4060,4060,4061,4061,4062,4062,4063,4063,4064,4065,4066,
 4067,4068,4069,4070,4070,4071,4072,4073,4074,4075,4076,4077,4078,4079,4080
 } ;
-
+ 
 void setup() {
 
   adc1_config_width(ADC_WIDTH_BIT_12); //se define el ADC con 12 bits de resolución
@@ -445,8 +445,7 @@ sensors.begin();
 }
 
 void loop() {
-  modem.init();
-  delay(119000); //delay de 1 segundo antes de ejecutar el resto del código, al final del código es un delay de 59 seg para en resultado 
+  modem.init(); 
   //crear un loop que lea los datos cada 1 minuto y los envíe por internet a la plataforma
   // put your main code here, to run repeatedly:
 //código para testear los comandos AT desde la consola serial
@@ -528,9 +527,25 @@ strcat(result,"\r\n"); // append string two to the result.
 appendFile(SD, "/data.txt", result);
 //appendFile(SD, "/data.txt", "ejemplo\r\n");
   //leer stack de datos
+
+
+//crear un char con la fecha
+char filename[18];
+  filename[0]='\0';
+  strcat(filename, "/queue/");
+  // Length (with one extra character for the null terminator)
+  int str_len = var1.length() + 1; 
+
+  // Prepare the character array (the buffer) 
+  char char_array[str_len];
+
+  // Copy it over 
+  var1.toCharArray(char_array, str_len);
+  strcat(filename, char_array);
+  SerialMon.println(filename);
 //Si el modem está conectado intentar conectarse a la red gsrm
   //primer loop modemConnected es false por ende
-  SerialMon.println(modemConnected);
+  //SerialMon.println(modemConnected);
   if (!modemConnected) { //modemConnected == false ; !modemConnected == true entonces entra al if
     SerialMon.println(modemConnected);
     SerialMon.print(F("Waiting for network..."));
@@ -541,6 +556,8 @@ appendFile(SD, "/data.txt", result);
         digitalWrite(4, HIGH);   // set the RTS off
         delay(1000);
         digitalWrite(4, LOW);   // set the RTS on
+        writeFile(SD, filename, output);
+        delay(46000);
         return;
     }
     SerialMon.println(" OK");
@@ -556,13 +573,15 @@ appendFile(SD, "/data.txt", result);
         digitalWrite(4, HIGH);   // set the RTS off
         delay(1000);
         digitalWrite(4, LOW);   // set the RTS on
+        writeFile(SD, filename, output);
+        delay(46000);
         return;
     }
 
     modemConnected = false;
     SerialMon.println(" OK");
   }
-  SerialMon.println(modemConnected);
+  //SerialMon.println(modemConnected);
   //intentar enviar los datos a la plataforma
   if (!tb.connected()) {
     // Connect to the ThingsBoard
@@ -572,6 +591,8 @@ appendFile(SD, "/data.txt", result);
     SerialMon.println(TOKEN);
     if (!tb.connect(THINGSBOARD_SERVER, TOKEN)) {
       SerialMon.println("Failed to connect");
+      writeFile(SD, filename, output);
+      delay(159000);
       return; //Se podría intentar un número de intentos antes de salir del void loop()
     }
   }
@@ -581,14 +602,40 @@ appendFile(SD, "/data.txt", result);
   // Uploads new telemetry to ThingsBoard using MQTT. 
   // Se envía los datos de telemetría a Thingsboard usando MQTT.
   // See https://thingsboard.io/docs/reference/mqtt-api/#telemetry-upload-api 
-
-  tb.sendTelemetryJson(output);
+  Serial.println(tb.sendTelemetryJson(output));
+  File root = SD.open("/queue");
+  if(!root){
+        Serial.println("Failed to open directory");
+        //return;
+    }
+  File file = root.openNextFile();
+  int n = 0; 
+  while((n < 2) && file){
+            Serial.print("  FILE: ");
+            Serial.print(file.name());
+            Serial.print("  SIZE: ");
+            Serial.println(file.size());
+            Serial.print("Read from file: ");
+            const char* buff;
+            while(file.available()){
+               buff = file.readString().c_str();
+            }
+            Serial.println(buff);
+            char filedirname[18];
+            strcpy(filedirname, file.name());
+            file.close();
+            file = root.openNextFile();
+            if (tb.sendTelemetryJson(buff)){
+              deleteFile(SD, filedirname);
+            }
+            n = n+1;
+  }
   //tb.sendTelemetryFloat("temperatura", random(50,400)/10.0);
   //tb.sendTelemetryFloat("voltajeDC", random(100, 140)/10.0);
   //tb.sendTelemetryFloat("corrienteAC", random(100, 1000)/10.0);
-
   tb.loop();
   SerialMon.println("Datos enviados");
+  delay(159000);
 }
 // Write to the SD card (DON'T MODIFY THIS FUNCTION)
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
