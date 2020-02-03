@@ -601,8 +601,7 @@ char filename[18];
       digitalWrite(4, HIGH);   // set the RTS off
       delay(1000);
       digitalWrite(4, LOW);   // set the RTS on
-      writeFile(SD, filename, output);
-      delay(157000);
+      delay(117000);
       return; //Se podría intentar un número de intentos antes de salir del void loop()
     }
   }
@@ -644,7 +643,7 @@ char filename[18];
   //tb.sendTelemetryFloat("corrienteAC", random(100, 1000)/10.0);
   tb.loop();
   SerialMon.println("Datos enviados");
-  delay(159000);
+  delay(119000);
 }
 // Write to the SD card (DON'T MODIFY THIS FUNCTION)
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
