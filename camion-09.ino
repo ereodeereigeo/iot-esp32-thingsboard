@@ -572,12 +572,11 @@ char filename[18];
     if (!modem.gprsConnect(apn, gprsUser, gprsPass)) { //debería crear un loop que intente unas 5 veces y continue con el resto del código
         SerialMon.println(" fail");
         writeFile(SD, filename, output);
-        delay(1000);
         pinMode(4,OUTPUT);
         digitalWrite(4, HIGH);   // set the RTS off
         delay(1000);
         digitalWrite(4, LOW);   // set the RTS on
-        delay(57000);
+        delay(59000);
         modemConnected = false;
         return;
     }
@@ -602,8 +601,7 @@ char filename[18];
       digitalWrite(4, HIGH);   // set the RTS off
       delay(1000);
       digitalWrite(4, LOW);   // set the RTS on
-      writeFile(SD, filename, output);
-      delay(157000);
+      delay(117000);
       return; //Se podría intentar un número de intentos antes de salir del void loop()
     }
   }
@@ -613,7 +611,7 @@ char filename[18];
   // Uploads new telemetry to ThingsBoard using MQTT. 
   // Se envía los datos de telemetría a Thingsboard usando MQTT.
   // See https://thingsboard.io/docs/reference/mqtt-api/#telemetry-upload-api 
-  tb.sendTelemetryJson(output));
+  tb.sendTelemetryJson(output);
   File root = SD.open("/queue");
   if(!root){
         Serial.println("Failed to open directory");
@@ -645,7 +643,7 @@ char filename[18];
   //tb.sendTelemetryFloat("corrienteAC", random(100, 1000)/10.0);
   tb.loop();
   SerialMon.println("Datos enviados");
-  delay(159000);
+  delay(119000);
 }
 // Write to the SD card (DON'T MODIFY THIS FUNCTION)
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
