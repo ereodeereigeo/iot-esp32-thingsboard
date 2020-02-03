@@ -572,7 +572,12 @@ char filename[18];
     if (!modem.gprsConnect(apn, gprsUser, gprsPass)) { //debería crear un loop que intente unas 5 veces y continue con el resto del código
         SerialMon.println(" fail");
         writeFile(SD, filename, output);
-        delay(59000);
+        delay(1000);
+        pinMode(4,OUTPUT);
+        digitalWrite(4, HIGH);   // set the RTS off
+        delay(1000);
+        digitalWrite(4, LOW);   // set the RTS on
+        delay(57000);
         modemConnected = false;
         return;
     }
