@@ -601,7 +601,6 @@ char filename[18];
       digitalWrite(4, HIGH);   // set the RTS off
       delay(1000);
       digitalWrite(4, LOW);   // set the RTS on
-      writeFile(SD, filename, output);
       delay(157000);
       return; //Se podría intentar un número de intentos antes de salir del void loop()
     }
