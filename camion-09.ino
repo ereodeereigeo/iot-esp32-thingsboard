@@ -85,7 +85,7 @@ TinyGsmClient client(modem);
 
 // Initialize ThingsBoard instance
 // Inicializar instancia de Thingsboard
-ThingsBoardSized<100> tb(client);
+ThingsBoardSized<128> tb(client);
 // Set to true, if modem is connected
 // Colocar en True si el modem está conectado
 bool modemConnected = false;
@@ -559,6 +559,7 @@ char filename[18];
         delay(1000);
         digitalWrite(4, LOW);   // set the RTS on
         writeFile(SD, filename, output);
+        modemConnected = false;
         delay(46000);
         return;
     }
@@ -570,17 +571,13 @@ char filename[18];
     //realiza la conección y verifica el tema
     if (!modem.gprsConnect(apn, gprsUser, gprsPass)) { //debería crear un loop que intente unas 5 veces y continue con el resto del código
         SerialMon.println(" fail");
-        delay(1000);
-        pinMode(4,OUTPUT);
-        digitalWrite(4, HIGH);   // set the RTS off
-        delay(1000);
-        digitalWrite(4, LOW);   // set the RTS on
         writeFile(SD, filename, output);
-        delay(46000);
+        delay(59000);
+        modemConnected = false;
         return;
     }
 
-    modemConnected = false;
+    modemConnected = true;
     SerialMon.println(" OK");
   }
   //SerialMon.println(modemConnected);
@@ -594,7 +591,14 @@ char filename[18];
     if (!tb.connect(THINGSBOARD_SERVER, TOKEN)) {
       SerialMon.println("Failed to connect");
       writeFile(SD, filename, output);
-      delay(159000);
+      modemConnected = false;
+      delay(1000);
+      pinMode(4,OUTPUT);
+      digitalWrite(4, HIGH);   // set the RTS off
+      delay(1000);
+      digitalWrite(4, LOW);   // set the RTS on
+      writeFile(SD, filename, output);
+      delay(157000);
       return; //Se podría intentar un número de intentos antes de salir del void loop()
     }
   }
@@ -604,7 +608,7 @@ char filename[18];
   // Uploads new telemetry to ThingsBoard using MQTT. 
   // Se envía los datos de telemetría a Thingsboard usando MQTT.
   // See https://thingsboard.io/docs/reference/mqtt-api/#telemetry-upload-api 
-  Serial.println(tb.sendTelemetryJson(output));
+  tb.sendTelemetryJson(output));
   File root = SD.open("/queue");
   if(!root){
         Serial.println("Failed to open directory");
@@ -622,13 +626,14 @@ char filename[18];
                buff = file.readString().c_str();
             }
             Serial.println(buff);
-            char filedirname[18];
+            char filedirname[20];
             strcpy(filedirname, file.name());
             file.close();
             file = root.openNextFile();
             if (tb.sendTelemetryJson(buff)){
               deleteFile(SD, filedirname);
             }
+            tb.loop();
   }
   //tb.sendTelemetryFloat("temperatura", random(50,400)/10.0);
   //tb.sendTelemetryFloat("voltajeDC", random(100, 140)/10.0);
