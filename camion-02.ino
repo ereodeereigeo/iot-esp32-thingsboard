@@ -612,7 +612,7 @@ char filename[18];
   // Uploads new telemetry to ThingsBoard using MQTT. 
   // Se envía los datos de telemetría a Thingsboard usando MQTT.
   // See https://thingsboard.io/docs/reference/mqtt-api/#telemetry-upload-api 
-  tb.sendTelemetryJson(output));
+  tb.sendTelemetryJson(output);
   File root = SD.open("/queue");
   if(!root){
         Serial.println("Failed to open directory");
