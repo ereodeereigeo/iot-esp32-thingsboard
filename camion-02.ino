@@ -12,20 +12,21 @@
 #include "FS.h"
 #include "SD.h"
 #include <SPI.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
+#include <OneWire.h> //Librería para comunicación con el sensor de temperatura
+#include <DallasTemperature.h> //Librería para el sensor de temperatura
 
+//Parpametros sensor de corriente
 int bits;
 int maximum_bits;
 float Irms;
-float offset = 120;
+float offset = 150; //Modificar este offset para ajustar la corriente
 int inPinI;
 int sampleI;
 float sqV,sumV,sqI,sumI,instP,sumP; 
 float voltageI;     
 esp_adc_cal_characteristics_t *adc_chars = new esp_adc_cal_characteristics_t;
-const int sensorPin = 33;   // seleccionar la entrada para el sensor
-int sensorValue;         // variable que almacena el valor raw (0 a 1023)
+const int sensorPin = 33;   // seleccionar la entrada para el sensor de voltaje
+int sensorValue;         // variable que almacena el valor del sensor de voltaje raw (0 a 1023)
 float value;   
 // GPIO where the DS18B20 is connected to
 // Pin en donde el sensor de temperatura DS18B20 está conectado
@@ -84,7 +85,7 @@ TinyGsmClient client(modem);
 
 // Initialize ThingsBoard instance
 // Inicializar instancia de Thingsboard
-ThingsBoard tb(client);
+ThingsBoardSized<128> tb(client);
 // Set to true, if modem is connected
 // Colocar en True si el modem está conectado
 bool modemConnected = false;
@@ -353,18 +354,18 @@ int ADC_LUT[4096] = { 0,
 4057,4058,4058,4059,4059,4060,4060,4061,4061,4062,4062,4063,4063,4064,4065,4066,
 4067,4068,4069,4070,4070,4071,4072,4073,4074,4075,4076,4077,4078,4079,4080
 } ;
-
+ 
 void setup() {
 
-  adc1_config_width(ADC_WIDTH_BIT_12);
-  adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_0);
+  adc1_config_width(ADC_WIDTH_BIT_12); //se define el ADC con 12 bits de resolución
+  adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_0); //Se restringe al canal 6 (pin 34) una atenuación de 0DB es decir funciona lineal entre 0 y 1.1V
   // put your setup code here, to run once:
   //inicializar puerto serial ESP32
-  SerialMon.begin(38400);
+  SerialMon.begin(115200);
   delay(5000);
   SerialMon.println("Monitor serial inicializado");
   //Inicializar puerto serie SIM800L
-  SerialAT.begin(38400);
+  SerialAT.begin(115200);
   delay(3000);
   pinMode(4,OUTPUT);
   digitalWrite(4, HIGH);   // set the RTS off
@@ -376,7 +377,8 @@ void setup() {
  //while (1);
  }
  //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
- //leer hora actual
+ 
+  //leer hora actual
   DateTime now = rtc.now();
   SerialMon.println(now.unixtime());
   Serial.print(now.year(), DEC);
@@ -434,6 +436,8 @@ sensors.begin();
     Serial.println("File already exists"); // si detecta el archivo simplemente lo cierra 
   }
   file.close();
+  //crear directorio para datos en cola
+  createDir(SD, "/queue");
   //inicializar MODEM
   modem.init(); //inicializa el modem
   String modemInfo = modem.getModemInfo(); //solicita la información del modem
@@ -443,9 +447,7 @@ sensors.begin();
 }
 
 void loop() {
-  delay(119000); //delay de 1 segundo antes de ejecutar el resto del código, al final del código es un delay de 59 seg para en resultado 
-  SerialAT.begin(38400);
-  modem.init(); //inicializa el modem
+  modem.init(); 
   //crear un loop que lea los datos cada 1 minuto y los envíe por internet a la plataforma
   // put your main code here, to run repeatedly:
 //código para testear los comandos AT desde la consola serial
@@ -477,7 +479,7 @@ void loop() {
     Serial.print(now.second(), DEC);
     Serial.println();
   //leer sensor de temperatura
-sensors.requestTemperatures(); 
+  sensors.requestTemperatures(); 
   float temperatureC = sensors.getTempCByIndex(0);
   float temperatureF = sensors.getTempFByIndex(0);
   Serial.print(temperatureC);
@@ -491,9 +493,9 @@ sensors.requestTemperatures();
   SerialMon.print("Corriente AC: ");
   SerialMon.println(Irms3);
   //Leer corriente pin 35
-  double Irms2 = calcIrms(1480, 35);
+  //double Irms2 = calcIrms(1480, 35);
   //Leer corriente pin 32
-  double Irms1 = calcIrms(1480, 32);
+  //double Irms1 = calcIrms(1480, 32);
 //falta añadir el código aquí!!!!!
   //leer sensor de voltaje DC
    sensorValue = analogRead(sensorPin);          // realizar la lectura
@@ -527,15 +529,38 @@ strcat(result,"\r\n"); // append string two to the result.
 appendFile(SD, "/data.txt", result);
 //appendFile(SD, "/data.txt", "ejemplo\r\n");
   //leer stack de datos
+
+
+//crear un char con la fecha
+char filename[18];
+  filename[0]='\0';
+  strcat(filename, "/queue/");
+  // Length (with one extra character for the null terminator)
+  int str_len = var1.length() + 1; 
+
+  // Prepare the character array (the buffer) 
+  char char_array[str_len];
+
+  // Copy it over 
+  var1.toCharArray(char_array, str_len);
+  strcat(filename, char_array);
+  SerialMon.println(filename);
 //Si el modem está conectado intentar conectarse a la red gsrm
-  if (!modemConnected) {
+  //primer loop modemConnected es false por ende
+  //SerialMon.println(modemConnected);
+  if (!modemConnected) { //modemConnected == false ; !modemConnected == true entonces entra al if
+    SerialMon.println(modemConnected);
     SerialMon.print(F("Waiting for network..."));
-    if (!modem.waitForNetwork()) {
+    if (!modem.waitForNetwork()) { //si modem.waitForNetwork() es falso, entonces falla, sino, salta a OK
         SerialMon.println(" fail");
+        delay(1000);
         pinMode(4,OUTPUT);
-  digitalWrite(4, HIGH);   // set the RTS off
-  delay(1000);
-  digitalWrite(4, LOW);   // set the RTS on
+        digitalWrite(4, HIGH);   // set the RTS off
+        delay(1000);
+        digitalWrite(4, LOW);   // set the RTS on
+        writeFile(SD, filename, output);
+        modemConnected = false;
+        delay(46000);
         return;
     }
     SerialMon.println(" OK");
@@ -546,17 +571,20 @@ appendFile(SD, "/data.txt", result);
     //realiza la conección y verifica el tema
     if (!modem.gprsConnect(apn, gprsUser, gprsPass)) { //debería crear un loop que intente unas 5 veces y continue con el resto del código
         SerialMon.println(" fail");
-        delay(1000);
+        writeFile(SD, filename, output);
         pinMode(4,OUTPUT);
-  digitalWrite(4, HIGH);   // set the RTS off
-  delay(1000);
-  digitalWrite(4, LOW);   // set the RTS on
+        digitalWrite(4, HIGH);   // set the RTS off
+        delay(1000);
+        digitalWrite(4, LOW);   // set the RTS on
+        delay(59000);
+        modemConnected = false;
         return;
     }
 
-    modemConnected = false;
+    modemConnected = true;
     SerialMon.println(" OK");
   }
+  //SerialMon.println(modemConnected);
   //intentar enviar los datos a la plataforma
   if (!tb.connected()) {
     // Connect to the ThingsBoard
@@ -566,6 +594,15 @@ appendFile(SD, "/data.txt", result);
     SerialMon.println(TOKEN);
     if (!tb.connect(THINGSBOARD_SERVER, TOKEN)) {
       SerialMon.println("Failed to connect");
+      writeFile(SD, filename, output);
+      modemConnected = false;
+      delay(1000);
+      pinMode(4,OUTPUT);
+      digitalWrite(4, HIGH);   // set the RTS off
+      delay(1000);
+      digitalWrite(4, LOW);   // set the RTS on
+      writeFile(SD, filename, output);
+      delay(157000);
       return; //Se podría intentar un número de intentos antes de salir del void loop()
     }
   }
@@ -575,13 +612,39 @@ appendFile(SD, "/data.txt", result);
   // Uploads new telemetry to ThingsBoard using MQTT. 
   // Se envía los datos de telemetría a Thingsboard usando MQTT.
   // See https://thingsboard.io/docs/reference/mqtt-api/#telemetry-upload-api 
-
-  tb.sendTelemetryJson(output);
+  tb.sendTelemetryJson(output));
+  File root = SD.open("/queue");
+  if(!root){
+        Serial.println("Failed to open directory");
+        //return;
+    }
+  File file = root.openNextFile();
+  while(file){
+            Serial.print("  FILE: ");
+            Serial.print(file.name());
+            Serial.print("  SIZE: ");
+            Serial.println(file.size());
+            Serial.print("Read from file: ");
+            const char* buff;
+            while(file.available()){
+               buff = file.readString().c_str();
+            }
+            Serial.println(buff);
+            char filedirname[20];
+            strcpy(filedirname, file.name());
+            file.close();
+            file = root.openNextFile();
+            if (tb.sendTelemetryJson(buff)){
+              deleteFile(SD, filedirname);
+            }
+            tb.loop();
+  }
   //tb.sendTelemetryFloat("temperatura", random(50,400)/10.0);
   //tb.sendTelemetryFloat("voltajeDC", random(100, 140)/10.0);
   //tb.sendTelemetryFloat("corrienteAC", random(100, 1000)/10.0);
-
   tb.loop();
+  SerialMon.println("Datos enviados");
+  delay(159000);
 }
 // Write to the SD card (DON'T MODIFY THIS FUNCTION)
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
